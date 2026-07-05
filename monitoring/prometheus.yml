@@ -2,43 +2,21 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets: ['alertmanager:9093']
-
 rule_files:
   - "alert_rules.yml"
 
 scrape_configs:
   - job_name: 'catalogue'
     static_configs:
-      - targets: ['catalogue-service:80']
+      - targets: ['catalogue:8000']
     metrics_path: '/metrics'
 
   - job_name: 'panier'
     static_configs:
-      - targets: ['panier-service:80']
+      - targets: ['panier:8001']
     metrics_path: '/metrics'
 
   - job_name: 'paiement'
     static_configs:
-      - targets: ['paiement-service:80']
+      - targets: ['paiement:8002']
     metrics_path: '/metrics'
-
-  - job_name: 'blackbox'
-    metrics_path: /probe
-    params:
-      module: [http_2xx]
-    static_configs:
-      - targets:
-        - http://catalogue-service:80/health
-        - http://panier-service:80/health
-        - http://paiement-service:80/health
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: blackbox-exporter:9115
