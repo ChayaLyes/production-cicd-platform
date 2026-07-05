@@ -62,4 +62,4 @@ jobs:
           tags: ghcr.io/chayalyes/paiement:latest
 
       - name: Notify success
-        run: echo "✅ Pipeline réussi - images poussées sur GHCR"
+        run: echo "Pipeline reussi - images poussees sur GHCR"
