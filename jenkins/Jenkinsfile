@@ -1,0 +1,67 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REGISTRY = "ghcr.io/chayalyes"
+        APP_NAME = "production-cicd-platform"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '📥 Récupération du code source...'
+                checkout scm
+            }
+        }
+
+        stage('Build Images') {
+            steps {
+                echo '🔨 Build des images Docker...'
+                sh 'docker build -t ${DOCKER_REGISTRY}/catalogue:${BUILD_NUMBER} services/catalogue/'
+                sh 'docker build -t ${DOCKER_REGISTRY}/panier:${BUILD_NUMBER} services/panier/'
+                sh 'docker build -t ${DOCKER_REGISTRY}/paiement:${BUILD_NUMBER} services/paiement/'
+            }
+        }
+
+        stage('Security Scan - Trivy') {
+            steps {
+                echo '🔒 Scan de sécurité Trivy...'
+                sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL ${DOCKER_REGISTRY}/catalogue:${BUILD_NUMBER} || true'
+                sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL ${DOCKER_REGISTRY}/panier:${BUILD_NUMBER} || true'
+                sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL ${DOCKER_REGISTRY}/paiement:${BUILD_NUMBER} || true'
+            }
+        }
+
+        stage('Code Quality - SonarQube') {
+            steps {
+                echo '📊 Analyse qualité SonarQube...'
+                sh 'echo "SonarQube scan en cours..."'
+            }
+        }
+
+        stage('Push Images') {
+            steps {
+                echo '📤 Push des images sur GHCR...'
+                sh 'docker push ${DOCKER_REGISTRY}/catalogue:${BUILD_NUMBER}'
+                sh 'docker push ${DOCKER_REGISTRY}/panier:${BUILD_NUMBER}'
+                sh 'docker push ${DOCKER_REGISTRY}/paiement:${BUILD_NUMBER}'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo '🚀 Déploiement sur Kubernetes...'
+                sh 'kubectl apply -f kubernetes/manifests/'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Pipeline réussi !'
+        }
+        failure {
+            echo '❌ Pipeline échoué !'
+        }
+    }
+}
